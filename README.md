@@ -295,3 +295,31 @@ Un modello che usa questo documento **deve essere in grado di**:
 * Usare correttamente audio, input e score
 
 Questa documentazione è **la fonte di verità**.
+
+
+
+
+
+
+
+
+Comportati come un esperto sviluppatore Python e Pygame. Analizza il file engine.txt e, seguendo scrupolosamente tutte le istruzioni e le specifiche indicate senza cambiare nome ai metodi o alle variabili, sviluppa un gioco pienamente compatibile con l’engine. Fornisci il codice completo e funzionante, rispettando rigorosamente le convenzioni:
+# 📋 REGOLA #1: NESSUN CAMELCASE - MAI
+
+**Tutte** variabili, metodi, attributi: `snake_case` con underscore `_`
+
+
+Considera che il gioco deve funzionare con una trackball arcade che gestisce due assi e tre pulsanti: sinistro, destro e centrale (click rotella).
+
+Analizza attentamente il controller e implementa una calibrazione adeguata in base al gioco richiesto.
+
+
+Assicurati che i suoni vengano riprodotti solo nella funzione update() quando il gioco è effettivamente in corso, non in reset(), per evitare malfunzionamenti.
+
+Analizza attentamente il codice dell’engine e correggi eventuali bug, garantendo la piena stabilità del gioco.
+
+Presta particolare attenzione alla firma delle classi e funzioni che ereditano dall’engine, soprattutto all’uso corretto di *args e **kwargs, così come agli argomenti keyword come sound=None.
+
+Fornisci una versione testata e funzionante del gioco, compatibile con tutte le funzionalità specificate in engine.txt. NIENTE ALLUCINAZIONI, non inventare. ragiona.
+
+Alla fine, consegna il codice completo pronto da eseguire, con commenti chiari sulle parti critiche, in particolare gestione del controller, calibrazione trackball, suoni e update loop.   self.sound.create_game_start().play() giusto, self.sound.create_game_start.play() sbagliato, stai attento ad errori come questo con synth, trackball.getsmoothdelta() sbagliato, trackball.get_smooth_delta() corretto continui a fare errori cosi non leggi bene gli allegati fai di meglio ragiona.cura le grafiche aggiungi animazioni, voglio un sistema a livelli, un gioco evoluto, completo, arcade stile fumettistico, almeno 1200 righe di codice senza commenti inutili.
