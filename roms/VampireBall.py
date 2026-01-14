@@ -3705,7 +3705,14 @@ class VampireBall(MiniGame):
             self.draw_game_over(surface)
         elif self.game_state == GameState.UPGRADE_SHOP:
             self.draw_upgrade_shop(surface)
-            
+
+
+
+
+
+
+
+
     def draw_character_select(self, surface: pygame.Surface):
         surface.fill((15, 20, 35))
         
@@ -3717,7 +3724,21 @@ class VampireBall(MiniGame):
                 star_x = (star['x'] + layer['offset_x']) % 1280
                 star_y = (star['y'] + layer['offset_y']) % 720
                 pygame.draw.circle(surface, (brightness, brightness, brightness), 
-                                 (int(star_x), int(star_y)), int(star['size']))
+                                (int(star_x), int(star_y)), int(star['size']))
+        
+        # Effetto particelle per personaggi sbloccati
+        if self.characters_data[self.selected_character_index].unlocked:
+            for _ in range(3):
+                angle = random.random() * math.pi * 2
+                radius = random.randint(50, 120)
+                particle_x = 640 + math.cos(angle) * radius
+                particle_y = 400 + math.sin(angle) * radius
+                size = random.randint(2, 5)
+                alpha = int(abs(math.sin(self.animation_time * 3)) * 100)
+                color = self.characters_data[self.selected_character_index].color
+                particle_surf = pygame.Surface((size*2, size*2), pygame.SRCALPHA)
+                pygame.draw.circle(particle_surf, (*color, alpha), (size, size), size)
+                surface.blit(particle_surf, (particle_x - size, particle_y - size))
         
         title = "VAMPIRE SURVIVORS CLONE"
         self.draw_text_outlined(surface, title, 640, 70, 64, (220, 100, 100), (40, 20, 20), 3)
@@ -3744,9 +3765,13 @@ class VampireBall(MiniGame):
             if is_selected:
                 pulse = math.sin(self.animation_time * 6) * 0.15 + 1.15
                 scale = pulse
+                float_offset = math.sin(self.animation_time * 3) * 10
             else:
                 scale = 0.85
+                float_offset = math.sin(self.animation_time * 2 + i) * 3
                 
+            y += float_offset
+            
             box_size = int(380 * scale)
             if is_unlocked:
                 box_color = tuple(min(255, int(c * 1.4)) for c in char.color) if is_selected else (60, 65, 85)
@@ -3764,93 +3789,324 @@ class VampireBall(MiniGame):
             # Effetto glow per selezionato
             if is_selected:
                 glow_rect = pygame.Rect(x - box_size//2 - 10, y - box_size//2 - 10, 
-                                      box_size + 20, box_size + 20)
+                                    box_size + 20, box_size + 20)
                 pygame.draw.rect(surface, (*char.color, 50), glow_rect, 0, 30)
             
             pygame.draw.rect(surface, border_color, box_rect, border_width, 25)
             
-            # Icona personaggio
-            char_size = int(60 * scale)
-            if char_index == 0:  # POE
-                pygame.draw.circle(surface, (240, 220, 160), (x, y - 70), char_size)
+            # Icona personaggio dettagliata
+            icon_size = int(80 * scale)  # Cambiato da char_size a icon_size
+            char_y = y - 70 + float_offset
+            
+            if char_index == 0:  # POE - Il Vampiro Elegante
+                # Mantello fluttuante
+                cloak_wave = math.sin(self.animation_time * 4 + i) * 0.3
+                points = [
+                    (x - icon_size*0.8, char_y + icon_size*0.3),
+                    (x - icon_size*1.2, char_y - icon_size*0.5 + cloak_wave * 20),
+                    (x, char_y - icon_size*0.8),
+                    (x + icon_size*1.2, char_y - icon_size*0.5 - cloak_wave * 20),
+                    (x + icon_size*0.8, char_y + icon_size*0.3)
+                ]
+                pygame.draw.polygon(surface, (100, 20, 40), points)
+                
+                # Corpo
+                pygame.draw.circle(surface, (220, 200, 180), (x, char_y - icon_size*0.2), icon_size*0.4)
+                
+                # Occhi rossi luminosi
+                eye_glow = abs(math.sin(self.animation_time * 5)) * 50 + 150
+                for eye_x in [-1, 1]:
+                    pygame.draw.circle(surface, (eye_glow, 20, 20), 
+                                    (x + eye_x * icon_size*0.2, char_y - icon_size*0.25), 
+                                    icon_size*0.12)
+                    pygame.draw.circle(surface, (255, 255, 255), 
+                                    (x + eye_x * icon_size*0.2, char_y - icon_size*0.25), 
+                                    icon_size*0.04)
+                
+                # Zanne pulsanti
+                fang_size = icon_size * 0.15 * (0.8 + 0.4 * abs(math.sin(self.animation_time * 3)))
+                for fang_x in [-1, 1]:
+                    fang_points = [
+                        (x + fang_x * icon_size*0.15, char_y - icon_size*0.05),
+                        (x + fang_x * icon_size*0.25, char_y),
+                        (x + fang_x * icon_size*0.15, char_y + icon_size*0.05)
+                    ]
+                    pygame.draw.polygon(surface, (255, 255, 255), fang_points)
+                    
+                # Particelle di sangue
+                for _ in range(5):
+                    blood_x = x + random.randint(-30, 30)
+                    blood_y = char_y + random.randint(-20, 20)
+                    blood_size = random.randint(1, 3)
+                    pygame.draw.circle(surface, (180, 0, 0), (blood_x, blood_y), blood_size)
+                        
+            elif char_index == 1:  # THOR - Dio del Tuono
+                # Corpo
+                pygame.draw.circle(surface, (200, 220, 255), (x, char_y), icon_size*0.5)
+                
+                # Barba fulminante
                 for j in range(8):
-                    angle = j * math.pi/4
-                    px = x + math.cos(angle) * char_size*0.9
-                    py = y - 70 + math.sin(angle) * char_size*0.9
-                    pygame.draw.circle(surface, (200, 180, 120), (int(px), int(py)), char_size//2)
-                    
-            elif char_index == 1:  # THOR
-                lightning_color = (180, 220, 255)
+                    angle = math.pi/2 + (j-4)*0.3
+                    length = icon_size*0.6 + math.sin(self.animation_time*4 + j)*icon_size*0.1
+                    bolt_points = []
+                    segments = 5
+                    for k in range(segments):
+                        t = k/(segments-1)
+                        offset = math.sin(t*math.pi*3 + j)*icon_size*0.1
+                        px = x + math.cos(angle)*length*t + math.sin(angle)*offset
+                        py = char_y + math.sin(angle)*length*t - math.cos(angle)*offset
+                        bolt_points.append((px, py))
+                    if len(bolt_points) > 1:
+                        pygame.draw.lines(surface, (180, 220, 255), False, bolt_points, 
+                                        max(3, int(icon_size*0.15)))
+                
+                # Martello rotante
+                hammer_angle = self.animation_time * 6
+                hammer_length = icon_size * 1.2
+                hammer_x = x + math.cos(hammer_angle) * hammer_length * 0.7
+                hammer_y = char_y + math.sin(hammer_angle) * hammer_length * 0.7
+                
+                # Manico
+                pygame.draw.line(surface, (160, 140, 120), (x, char_y), 
+                            (hammer_x, hammer_y), int(icon_size*0.2))
+                
+                # Testa del martello
+                head_size = icon_size * 0.4
+                pygame.draw.rect(surface, (180, 180, 200), 
+                            (hammer_x - head_size//2, hammer_y - head_size//2, 
+                                head_size, head_size))
+                
+                # Particelle di elettricità
+                for _ in range(8):
+                    spark_angle = random.random() * math.pi * 2
+                    spark_dist = random.randint(20, 60)
+                    spark_x = x + math.cos(spark_angle) * spark_dist
+                    spark_y = char_y + math.sin(spark_angle) * spark_dist
+                    spark_size = random.randint(1, 3)
+                    pygame.draw.circle(surface, (100, 200, 255), 
+                                    (int(spark_x), int(spark_y)), spark_size)
+                        
+            elif char_index == 2:  # AXE MASTER - Maestro delle Ascie
+                # CORREZIONE: current_size non è definito, usa icon_size
+                pygame.draw.circle(surface, (180, 160, 140), (x, char_y), int(icon_size*0.6))
+                
+                # Cappello
+                hat_height = icon_size * 0.8
+                hat_points = [
+                    (x - icon_size*0.7, char_y - icon_size*0.3),
+                    (x + icon_size*0.7, char_y - icon_size*0.3),
+                    (x, char_y - icon_size*0.3 - hat_height)
+                ]
+                pygame.draw.polygon(surface, (100, 60, 30), hat_points)
+                
+                # Ascia rotante
+                axe_angle = self.animation_time * 6
+                axe_length = icon_size * 1.2
+                axe_x = x + math.cos(axe_angle) * axe_length
+                axe_y = char_y + math.sin(axe_angle) * axe_length
+                
+                # Manico ascia
+                pygame.draw.line(surface, (140, 120, 80), (x, char_y), (axe_x, axe_y), 
+                            max(2, int(icon_size*0.2)))
+                
+                # Lama ascia - CORREZIONE PRINCIPALE
+                blade_size = icon_size * 0.6
+                # Crea 3 punti distinti per il triangolo della lama
+                blade_points = []
                 for j in range(3):
-                    points = []
-                    for k in range(6):
-                        t = k / 5
-                        points.append((
-                            x + math.sin(t * math.pi * 3 + j) * char_size*0.6,
-                            y - 70 - char_size + t * char_size*2
-                        ))
-                    pygame.draw.lines(surface, lightning_color, False, points, max(3, int(char_size*0.3)))
+                    if j == 0:
+                        # Punto base (attaccato al manico)
+                        angle = axe_angle + math.pi  # Direzione opposta all'asse
+                    elif j == 1:
+                        # Punto della punta
+                        angle = axe_angle - math.pi/3
+                    else:  # j == 2
+                        # Terzo punto per completare il triangolo
+                        angle = axe_angle + math.pi/3
                     
-            elif char_index == 2:  # AXE MASTER
-                angle = self.animation_time * 4
-                axe_size = char_size * 1.3
+                    blade_x = axe_x + math.cos(angle) * blade_size
+                    blade_y = axe_y + math.sin(angle) * blade_size
+                    blade_points.append((blade_x, blade_y))
                 
-                # Asse
-                handle_length = axe_size * 0.8
-                handle_x = x + math.cos(angle + math.pi) * handle_length
-                handle_y = y - 70 + math.sin(angle + math.pi) * handle_length
-                pygame.draw.line(surface, (180, 140, 80), (x, y-70), (handle_x, handle_y), char_size//3)
+                # Assicurati che ci siano almeno 3 punti
+                if len(blade_points) >= 3:
+                    blade_color = (200, 200, 220)
+                    pygame.draw.polygon(surface, blade_color, blade_points)
+                    pygame.draw.polygon(surface, (255, 255, 200), blade_points, 1)
                 
-                # Lame
-                for side in [-1, 1]:
-                    blade_angle = angle + side * math.pi/2.5
-                    blade_length = axe_size * 0.9
-                    blade_x = x + math.cos(blade_angle) * blade_length
-                    blade_y = y - 70 + math.sin(blade_angle) * blade_length
-                    pygame.draw.line(surface, (255, 200, 120), (x, y-70), (blade_x, blade_y), char_size//4)
+                # Cicatrici sul viso
+                pygame.draw.line(surface, (120, 100, 80), 
+                            (x - icon_size*0.2, char_y - icon_size*0.1),
+                            (x + icon_size*0.1, char_y + icon_size*0.1), 2)
                     
-            elif char_index == 3:  # ARCHER
-                bow_size = char_size * 1.2
-                pygame.draw.arc(surface, (140, 200, 140), 
-                              (x - bow_size//2, y - 70 - bow_size//2, bow_size, bow_size),
-                              math.pi/4, 3*math.pi/4, char_size//3)
+            elif char_index == 3:  # ARCHER - Arciere Elfico
+                # Corpo snello
+                body_height = icon_size * 1.2
+                body_width = icon_size * 0.6
+                body_y = char_y + icon_size*0.2
                 
+                # Corpo principale
+                pygame.draw.ellipse(surface, (200, 230, 200),
+                                (x - body_width//2, 
+                                body_y - body_height//2,
+                                body_width, body_height))
+                
+                # Arco curvato
+                bow_curve = math.sin(self.animation_time * 2) * 0.2
+                bow_points = []
+                for j in range(10):
+                    t = j/9
+                    angle = math.pi/4 + (t-0.5)*math.pi/2 + bow_curve
+                    radius = icon_size * 0.8
+                    bx = x + math.cos(angle) * radius
+                    by = char_y + math.sin(angle) * radius
+                    bow_points.append((bx, by))
+                if len(bow_points) > 1:
+                    pygame.draw.lines(surface, (160, 140, 100), False, bow_points, 4)
+                
+                # Freccia tremante
+                arrow_shake = math.sin(self.animation_time * 10) * 2
                 arrow_angle = math.pi/2
-                arrow_length = bow_size * 0.8
-                arrow_x = x + math.cos(arrow_angle) * arrow_length
-                arrow_y = y - 70 + math.sin(arrow_angle) * arrow_length
-                pygame.draw.line(surface, (200, 200, 200), (x, y-70), (arrow_x, arrow_y), char_size//5)
+                arrow_length = icon_size * 1.0
+                arrow_x = x + arrow_shake + math.cos(arrow_angle) * arrow_length
+                arrow_y = char_y + math.sin(arrow_angle) * arrow_length
                 
-            elif char_index == 4:  # NECROMANCER
-                skull_size = char_size * 0.9
-                pygame.draw.circle(surface, (200, 180, 220), (x, y - 70), skull_size)
+                # Penna della freccia
+                for feather_side in [-1, 1]:
+                    feather_points = [
+                        (x + feather_side * 3, char_y - 5),
+                        (x + feather_side * 8, char_y - 15),
+                        (x + feather_side * 3, char_y - 25)
+                    ]
+                    pygame.draw.polygon(surface, (200, 200, 100), feather_points)
                 
-                # Occhi
-                eye_size = skull_size * 0.25
-                pygame.draw.circle(surface, (30, 30, 50), 
-                                 (int(x - skull_size*0.3), int(y - 70 - skull_size*0.1)), 
-                                 int(eye_size))
-                pygame.draw.circle(surface, (30, 30, 50), 
-                                 (int(x + skull_size*0.3), int(y - 70 - skull_size*0.1)), 
-                                 int(eye_size))
+                # Punta della freccia
+                arrow_head = [
+                    (arrow_x, arrow_y),
+                    (arrow_x - 10, arrow_y - 5),
+                    (arrow_x - 10, arrow_y + 5)
+                ]
+                if len(arrow_head) >= 3:
+                    pygame.draw.polygon(surface, (180, 180, 180), arrow_head)
                 
-                # Bocca
-                mouth_width = skull_size * 0.6
-                pygame.draw.arc(surface, (30, 30, 50), 
-                              (x - mouth_width/2, y - 70, mouth_width, mouth_width*0.8),
-                              math.pi, 2*math.pi, 2)
+                # Effetto vento
+                for j in range(5):
+                    wind_x = x + random.randint(-20, 20)
+                    wind_y = char_y + random.randint(-30, 30)
+                    wind_len = random.randint(10, 30)
+                    # Correzione: pygame.draw.line non supporta alpha nella tupla colore
+                    wind_surf = pygame.Surface((abs(wind_len), abs(wind_len)), pygame.SRCALPHA)
+                    pygame.draw.line(wind_surf, (200, 200, 255, 100), 
+                                (0, 0), (wind_len, wind_len//2), 1)
+                    surface.blit(wind_surf, (wind_x, wind_y))
+                    
+            elif char_index == 4:  # NECROMANCER - Necromante Oscuro
+                # Mantello fluttuante oscuro
+                cloak_points = []
+                for j in range(12):
+                    t = j/11
+                    angle = math.pi + t * math.pi
+                    radius = icon_size * (0.8 + math.sin(t * math.pi * 2 + self.animation_time*3) * 0.2)
+                    cx = x + math.cos(angle) * radius
+                    cy = char_y + math.sin(angle) * radius * 0.5
+                    cloak_points.append((cx, cy))
+                if len(cloak_points) >= 3:
+                    pygame.draw.polygon(surface, (40, 20, 60), cloak_points)
                 
-            elif char_index == 5:  # PALADIN
-                shield_size = char_size * 1.1
-                pygame.draw.circle(surface, (140, 220, 255), (x, y - 70), shield_size)
+                # Teschio fluttuante
+                skull_float = math.sin(self.animation_time * 2) * 5
+                skull_size = icon_size * 0.6
+                pygame.draw.circle(surface, (200, 220, 240), 
+                                (x, char_y + skull_float), int(skull_size))
                 
-                cross_size = shield_size * 0.6
+                # Occhi brillanti
+                eye_glow = abs(math.sin(self.animation_time * 4)) * 100 + 100
+                for eye_x in [-1, 1]:
+                    pygame.draw.circle(surface, (eye_glow, 50, eye_glow), 
+                                    (x + eye_x * icon_size*0.15, char_y + skull_float - icon_size*0.05), 
+                                    int(icon_size*0.08))
+                
+                # Bocca oscura
+                mouth_open = 0.3 + abs(math.sin(self.animation_time * 2)) * 0.2
+                mouth_width = icon_size * 0.4
+                mouth_height = icon_size * 0.2 * mouth_open
+                pygame.draw.ellipse(surface, (30, 10, 40), 
+                                (x - mouth_width/2, 
+                                char_y + skull_float + icon_size*0.1, 
+                                mouth_width, mouth_height))
+                
+                # Rune fluttuanti
+                for j in range(4):
+                    rune_angle = self.animation_time * 2 + j * math.pi/2
+                    rune_radius = icon_size * 0.8
+                    rune_x = x + math.cos(rune_angle) * rune_radius
+                    rune_y = char_y + math.sin(rune_angle) * rune_radius
+                    rune_size = icon_size * 0.15
+                    rune_points = []
+                    for k in range(4):
+                        angle = k * math.pi/2
+                        px = rune_x + math.cos(angle) * rune_size
+                        py = rune_y + math.sin(angle) * rune_size
+                        rune_points.append((px, py))
+                    if len(rune_points) >= 3:
+                        pygame.draw.polygon(surface, (150, 100, 200), rune_points, 1)
+                        
+            elif char_index == 5:  # PALADIN - Paladino Sacro
+                # Armatura lucente
+                armor_size = icon_size * 0.7
+                pygame.draw.circle(surface, (220, 230, 240), (x, char_y), int(armor_size))
+                
+                # Scudo dorato
+                shield_angle = math.sin(self.animation_time * 1.5) * 0.2
+                shield_size = icon_size * 0.6
+                pygame.draw.circle(surface, (255, 220, 100), (x, char_y), int(shield_size))
+                
+                # Croce luminosa sullo scudo
+                cross_size = icon_size * 0.4
+                # Linea verticale
+                pygame.draw.rect(surface, (255, 255, 200), 
+                            (x - cross_size//6, char_y - cross_size//2,
+                            cross_size//3, cross_size))
+                # Linea orizzontale
+                pygame.draw.rect(surface, (255, 255, 200), 
+                            (x - cross_size//2, char_y - cross_size//6,
+                            cross_size, cross_size//3))
+                
+                # Spada fiammeggiante
+                sword_angle = math.sin(self.animation_time * 2) * 0.3 + math.pi/2
+                sword_length = icon_size * 1.5
+                sword_x = x + math.cos(sword_angle) * sword_length
+                sword_y = char_y + math.sin(sword_angle) * sword_length
+                
+                # Lama
+                pygame.draw.line(surface, (255, 255, 220), 
+                            (x, char_y),
+                            (sword_x, sword_y), 
+                            max(2, int(icon_size*0.15)))
+                
+                # Effetto fiamma sulla punta
+                for j in range(3):
+                    flame_size = icon_size * 0.2 * (1 + 0.5 * math.sin(self.animation_time*5 + j))
+                    flame_points = []
+                    for k in range(5):
+                        angle = j * math.pi/3 + k/4 * math.pi * 0.5
+                        fx = sword_x + math.cos(angle) * flame_size
+                        fy = sword_y + math.sin(angle) * flame_size
+                        flame_points.append((fx, fy))
+                    if len(flame_points) >= 3:
+                        pygame.draw.polygon(surface, (255, min(255, 200 + j*20), 100), flame_points)
+                
+                # Elmo con croce
+                helmet_y = char_y - icon_size*0.5
+                pygame.draw.circle(surface, (180, 190, 210), 
+                                (int(x), int(helmet_y)), int(icon_size*0.3))
+                # Croce sull'elmo
                 pygame.draw.line(surface, (255, 255, 200), 
-                               (x - cross_size, y - 70),
-                               (x + cross_size, y - 70), char_size//4)
+                            (x - icon_size*0.15, helmet_y),
+                            (x + icon_size*0.15, helmet_y), 2)
                 pygame.draw.line(surface, (255, 255, 200), 
-                               (x, y - 70 - cross_size),
-                               (x, y - 70 + cross_size), char_size//4)
+                            (x, helmet_y - icon_size*0.15),
+                            (x, helmet_y + icon_size*0.15), 2)
             
             name_parts = char.name.split(" - ")
             if is_unlocked:
@@ -3862,7 +4118,7 @@ class VampireBall(MiniGame):
             self.draw_text_outlined(surface, name_parts[0], x, y + 60, text_size, text_color, (30, 35, 50))
             if len(name_parts) > 1:
                 self.draw_text_outlined(surface, name_parts[1], x, y + 95, int(text_size * 0.9), 
-                                       (220, 230, 255) if is_unlocked else (150, 160, 180), (30, 35, 50))
+                                    (220, 230, 255) if is_unlocked else (150, 160, 180), (30, 35, 50))
             
             self.draw_text(surface, char.description, x, y + 125, 18, text_color, centered=True)
             
@@ -3873,15 +4129,28 @@ class VampireBall(MiniGame):
             
             if not char.unlocked:
                 self.draw_text_outlined(surface, f"LOCKED - {char.unlock_cost} POINTS", 
-                                      x, y + 180, 22, (255, 200, 100), (60, 50, 30))
+                                    x, y + 180, 22, (255, 200, 100), (60, 50, 30))
                 self.draw_text(surface, f"You have: {self.character_unlock_points} points", 
-                             x, y + 210, 16, (200, 200, 220), centered=True)
+                            x, y + 210, 16, (200, 200, 220), centered=True)
         
         instructions = "TRACKBALL: Navigate  •  LEFT: Select"
         if self.character_unlock_points > 0:
             instructions += "  •  Available Points: " + str(self.character_unlock_points)
         self.draw_text_outlined(surface, instructions, 640, 660, 26, (240, 220, 200), (40, 30, 25))
-        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4160,6 +4429,21 @@ class VampireBall(MiniGame):
             flash_surf.set_alpha(int(self.flash_effect * 180))
             surface.blit(flash_surf, (0, 0))
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     def draw_player(self, surface: pygame.Surface, shake_x: float, shake_y: float):
         screen_x = self.player_x - self.camera_x + shake_x
         screen_y = self.player_y - self.camera_y + shake_y
@@ -4169,127 +4453,433 @@ class VampireBall(MiniGame):
             
         char = self.characters_data[self.selected_character_index]
         
-        # Ombra
-        pygame.draw.circle(surface, (40, 40, 60, 150), (int(screen_x), int(screen_y + 5)), 25)
+        # Animazione di movimento
+        move_intensity = math.sqrt(self.player_vx**2 + self.player_vy**2) / 100
+        bob_effect = math.sin(self.animation_time * 8) * 3 * (1 + move_intensity * 0.5)
         
-        # Effetto movimento (scia)
-        if abs(self.player_vx) > 50 or abs(self.player_vy) > 50:
-            for i in range(3):
-                trail_alpha = 100 - i * 30
-                trail_size = 20 - i * 5
-                trail_x = screen_x - self.player_vx * 0.01 * i
-                trail_y = screen_y - self.player_vy * 0.01 * i
-                pygame.draw.circle(surface, (*char.color, trail_alpha), 
-                                 (int(trail_x), int(trail_y)), trail_size)
+        # Ombra con effetto di movimento
+        shadow_size = max(5, 25 + move_intensity * 5)
+        shadow_alpha = min(255, 150 + int(move_intensity * 50))
+        if shadow_size > 0 and shadow_alpha > 0:
+            shadow_surf = pygame.Surface((int(shadow_size*2), int(shadow_size*2)), pygame.SRCALPHA)
+            # Correggi: usa solo 3 componenti per draw.circle, gestisci alpha tramite Surface
+            pygame.draw.circle(shadow_surf, (40, 40, 60), 
+                            (int(shadow_size), int(shadow_size)), int(shadow_size))
+            shadow_surf.set_alpha(shadow_alpha)
+            surface.blit(shadow_surf, (int(screen_x - shadow_size), int(screen_y + 8)))
         
-        # Corpo
-        pygame.draw.circle(surface, char.color, (int(screen_x), int(screen_y)), 22)
+        # Effetto movimento (scia) - solo quando si muove velocemente
+        if move_intensity > 0.5:
+            trail_length = min(5, int(3 + move_intensity * 2))
+            for i in range(trail_length):
+                trail_alpha = min(255, int(100 * (1 - i/trail_length) * move_intensity))
+                trail_size = max(3, 15 - i * 3)
+                if trail_alpha > 10 and trail_size > 0:
+                    trail_x = screen_x - self.player_vx * 0.02 * i
+                    trail_y = screen_y - self.player_vy * 0.02 * i
+                    if trail_size > 0:
+                        trail_surf = pygame.Surface((max(2, trail_size*2), max(2, trail_size*2)), pygame.SRCALPHA)
+                        # Correggi: usa solo 3 componenti per draw.circle
+                        pygame.draw.circle(trail_surf, char.color[:3], 
+                                        (trail_size, trail_size), trail_size)
+                        trail_surf.set_alpha(trail_alpha)
+                        surface.blit(trail_surf, (int(trail_x - trail_size), int(trail_y - trail_size)))
         
-        # Dettagli personaggio
-        if self.selected_character_index == 0:  # POE
-            pygame.draw.circle(surface, (240, 220, 180), (int(screen_x), int(screen_y - 4)), 14)
-            pygame.draw.circle(surface, (40, 40, 60), (int(screen_x - 5), int(screen_y - 6)), 4)
-            pygame.draw.circle(surface, (40, 40, 60), (int(screen_x + 5), int(screen_y - 6)), 4)
+        # Calcola l'angolo di movimento per orientare alcune animazioni
+        move_angle = 0
+        if abs(self.player_vx) > 0.1 or abs(self.player_vy) > 0.1:
+            move_angle = math.atan2(self.player_vy, self.player_vx)
+        
+        # Disegno specifico per ogni personaggio
+        if self.selected_character_index == 0:  # POE - Vampiro Elegante
+            # Corpo principale
+            body_size = max(15, 20 + math.sin(self.animation_time * 4) * 2)
+            pygame.draw.circle(surface, (220, 200, 180), 
+                            (int(screen_x), int(screen_y + bob_effect)), int(body_size))
             
-        elif self.selected_character_index == 1:  # THOR
-            pygame.draw.rect(surface, (80, 100, 140), 
-                           (int(screen_x - 18), int(screen_y - 28), 36, 18))
-            # Fulmine sul petto
-            lightning_points = [
-                (screen_x - 8, screen_y - 20),
-                (screen_x, screen_y - 15),
-                (screen_x + 8, screen_y - 20),
-                (screen_x, screen_y - 10),
-                (screen_x - 8, screen_y - 15)
+            # Mantello fluttuante
+            cloak_float = math.sin(self.animation_time * 3) * 5
+            cloak_points = [
+                (screen_x - 25, screen_y + 10 + bob_effect),
+                (screen_x - 35, screen_y - 15 + cloak_float),
+                (screen_x, screen_y - 25 + bob_effect),
+                (screen_x + 35, screen_y - 15 - cloak_float),
+                (screen_x + 25, screen_y + 10 + bob_effect)
             ]
-            pygame.draw.lines(surface, (180, 220, 255), False, lightning_points, 3)
+            pygame.draw.polygon(surface, (100, 20, 40), cloak_points)
             
-        elif self.selected_character_index == 2:  # AXE MASTER
-            pygame.draw.rect(surface, (200, 160, 120), 
-                           (int(screen_x - 14), int(screen_y - 6), 28, 18))
-            pygame.draw.rect(surface, (255, 100, 100), 
-                           (int(screen_x - 18), int(screen_y - 12), 36, 6))
+            # Occhi rossi luminosi
+            eye_glow = min(255, abs(math.sin(self.animation_time * 5)) * 100 + 100)
+            for eye_offset in [-8, 8]:
+                pygame.draw.circle(surface, (eye_glow, 20, 20), 
+                                (int(screen_x + eye_offset), int(screen_y - 2 + bob_effect)), 6)
+                pygame.draw.circle(surface, (255, 255, 255), 
+                                (int(screen_x + eye_offset + 2), int(screen_y - 4 + bob_effect)), 2)
             
-        elif self.selected_character_index == 3:  # ARCHER
-            # Arco
-            bow_points = [
-                (screen_x - 15, screen_y),
-                (screen_x, screen_y - 20),
-                (screen_x + 15, screen_y)
+            # Zanne pulsanti
+            if int(self.animation_time * 8) % 2 == 0:
+                fang_size = max(3, 5 + math.sin(self.animation_time * 4) * 2)
+                for fang_offset in [-4, 4]:
+                    fang_points = [
+                        (screen_x + fang_offset, screen_y + 8 + bob_effect),
+                        (screen_x + fang_offset - 3, screen_y + 15 + bob_effect),
+                        (screen_x + fang_offset + 3, screen_y + 15 + bob_effect)
+                    ]
+                    pygame.draw.polygon(surface, (255, 255, 255), fang_points)
+            
+            # Particelle di sangue se sta danneggiando
+            if self.special_active or move_intensity > 1:
+                for _ in range(2):
+                    blood_x = screen_x + random.randint(-15, 15)
+                    blood_y = screen_y + random.randint(-10, 10)
+                    blood_size = random.randint(1, 3)
+                    pygame.draw.circle(surface, (180, 0, 0), 
+                                    (int(blood_x), int(blood_y)), blood_size)
+                
+        elif self.selected_character_index == 1:  # THOR - Dio del Tuono
+            # Corpo
+            body_size = 18
+            pygame.draw.circle(surface, (200, 220, 255), 
+                            (int(screen_x), int(screen_y + bob_effect)), body_size)
+            
+            # Barba fulminante
+            for i in range(5):
+                angle = math.pi/2 + (i-2)*0.4
+                length = max(10, 15 + math.sin(self.animation_time*4 + i)*5)
+                bolt_points = []
+                segments = 4
+                for k in range(segments):
+                    t = k/(segments-1)
+                    offset = math.sin(t*math.pi*3 + i)*3
+                    px = screen_x + math.cos(angle)*length*t + math.sin(angle)*offset
+                    py = screen_y + bob_effect + math.sin(angle)*length*t - math.cos(angle)*offset
+                    bolt_points.append((px, py))
+                if len(bolt_points) > 1:
+                    pygame.draw.lines(surface, (180, 220, 255), False, bolt_points, 2)
+            
+            # Martello rotante
+            hammer_angle = self.animation_time * 6
+            hammer_length = 25
+            hammer_x = screen_x + math.cos(hammer_angle) * hammer_length
+            hammer_y = screen_y + bob_effect + math.sin(hammer_angle) * hammer_length
+            
+            # Manico martello
+            pygame.draw.line(surface, (160, 140, 120), (screen_x, screen_y + bob_effect),
+                        (hammer_x, hammer_y), 4)
+            
+            # Testa martello
+            head_size = 8
+            pygame.draw.circle(surface, (180, 180, 200), 
+                            (int(hammer_x), int(hammer_y)), head_size)
+            
+            # Fulmini attorno durante movimento veloce
+            if move_intensity > 0.8:
+                for _ in range(3):
+                    spark_angle = random.random() * math.pi * 2
+                    spark_dist = random.randint(15, 30)
+                    spark_x = screen_x + math.cos(spark_angle) * spark_dist
+                    spark_y = screen_y + bob_effect + math.sin(spark_angle) * spark_dist
+                    pygame.draw.circle(surface, (100, 200, 255), 
+                                    (int(spark_x), int(spark_y)), 2)
+                
+        elif self.selected_character_index == 2:  # AXE MASTER - Maestro delle Ascie
+            # Corpo robusto
+            body_size = 20
+            pygame.draw.circle(surface, (180, 160, 140), 
+                            (int(screen_x), int(screen_y + bob_effect)), body_size)
+            
+            # Braccia muscolose che oscillano
+            arm_swing = math.sin(self.animation_time * 4) * 0.5
+            for side in [-1, 1]:
+                arm_length = 15
+                arm_angle = math.pi/2 + side * (arm_swing + 0.3)
+                arm_x = screen_x + math.cos(arm_angle) * arm_length
+                arm_y = screen_y + bob_effect + math.sin(arm_angle) * arm_length
+                
+                pygame.draw.line(surface, (200, 180, 160), 
+                            (screen_x, screen_y + bob_effect),
+                            (arm_x, arm_y), 6)
+                
+                # Ascia rotante
+                axe_angle = self.animation_time * 10 + side * math.pi
+                axe_length = 20
+                axe_x = arm_x + math.cos(axe_angle) * axe_length
+                axe_y = arm_y + math.sin(axe_angle) * axe_length
+                
+                # Manico ascia
+                pygame.draw.line(surface, (140, 120, 80), 
+                            (arm_x, arm_y),
+                            (axe_x, axe_y), 3)
+                
+                # Lama ascia
+                blade_size = 8
+                for blade_side in [-1, 1]:
+                    blade_angle = axe_angle + blade_side * math.pi/3
+                    blade_x = axe_x + math.cos(blade_angle) * blade_size
+                    blade_y = axe_y + math.sin(blade_angle) * blade_size
+                    pygame.draw.line(surface, (200, 200, 220), 
+                                (axe_x, axe_y),
+                                (blade_x, blade_y), 3)
+            
+            # Cicatrici sul viso
+            scar_angle = self.animation_time * 0.5
+            scar_x = screen_x + math.cos(scar_angle) * 2
+            scar_y = screen_y + bob_effect - 5 + math.sin(scar_angle) * 1
+            pygame.draw.line(surface, (120, 100, 80), 
+                        (scar_x - 5, scar_y - 3),
+                        (scar_x + 3, scar_y + 4), 2)
+                
+        elif self.selected_character_index == 3:  # ARCHER - Arciere Elfico
+            # Corpo snello
+            body_height = 25
+            body_width = 15
+            
+            # Corpo principale
+            pygame.draw.ellipse(surface, (200, 230, 200),
+                            (screen_x - body_width//2, 
+                            screen_y - body_height//2 + bob_effect,
+                            body_width, body_height))
+            
+            # Arco orientato nella direzione di movimento
+            bow_angle = move_angle + math.pi/2
+            bow_radius = max(15, 20)
+            bow_center_x = screen_x
+            bow_center_y = screen_y + bob_effect
+            
+            # Disegna arco come un arco di cerchio
+            bow_rect = (bow_center_x - bow_radius, bow_center_y - bow_radius,
+                    bow_radius*2, bow_radius*2)
+            pygame.draw.arc(surface, (160, 140, 100), bow_rect,
+                        bow_angle - math.pi/4, bow_angle + math.pi/4, 3)
+            
+            # Freccia (se ci si sta muovendo)
+            if move_intensity > 0.1:
+                arrow_length = 18
+                arrow_x = bow_center_x + math.cos(bow_angle) * arrow_length
+                arrow_y = bow_center_y + math.sin(bow_angle) * arrow_length
+                
+                pygame.draw.line(surface, (200, 200, 200), 
+                            (bow_center_x, bow_center_y),
+                            (arrow_x, arrow_y), 2)
+                
+                # Punta della freccia
+                arrow_head = [
+                    (arrow_x, arrow_y),
+                    (arrow_x - math.cos(bow_angle + math.pi*0.75) * 6,
+                    arrow_y - math.sin(bow_angle + math.pi*0.75) * 6),
+                    (arrow_x - math.cos(bow_angle - math.pi*0.75) * 6,
+                    arrow_y - math.sin(bow_angle - math.pi*0.75) * 6)
+                ]
+                pygame.draw.polygon(surface, (180, 180, 180), arrow_head)
+            
+            # Cappuccio elfico
+            hood_points = [
+                (screen_x, screen_y - 15 + bob_effect),
+                (screen_x - 12, screen_y - 5 + bob_effect),
+                (screen_x - 10, screen_y + 5 + bob_effect),
+                (screen_x + 10, screen_y + 5 + bob_effect),
+                (screen_x + 12, screen_y - 5 + bob_effect)
             ]
-            pygame.draw.lines(surface, (140, 100, 80), False, bow_points, 4)
-            
-            # Freccia
-            arrow_angle = math.atan2(self.player_vy, self.player_vx) if abs(self.player_vx) > 1 or abs(self.player_vy) > 1 else math.pi/2
-            arrow_length = 20
-            arrow_x = screen_x + math.cos(arrow_angle) * arrow_length
-            arrow_y = screen_y + math.sin(arrow_angle) * arrow_length
-            pygame.draw.line(surface, (200, 200, 200), (screen_x, screen_y), 
-                           (arrow_x, arrow_y), 3)
-            
-        elif self.selected_character_index == 4:  # NECROMANCER
-            # Cappuccio
-            pygame.draw.circle(surface, (40, 30, 50), (int(screen_x), int(screen_y - 10)), 18)
-            
-            # Occhi luminosi
-            eye_glow = math.sin(self.animation_time * 8) * 0.3 + 0.7
-            pygame.draw.circle(surface, (180, 100, 220), 
-                             (int(screen_x - 6), int(screen_y - 12)), int(5 * eye_glow))
-            pygame.draw.circle(surface, (180, 100, 220), 
-                             (int(screen_x + 6), int(screen_y - 12)), int(5 * eye_glow))
-            
-        elif self.selected_character_index == 5:  # PALADIN
-            # Scudo
-            shield_points = [
-                (screen_x - 20, screen_y),
-                (screen_x, screen_y - 25),
-                (screen_x + 20, screen_y),
-                (screen_x, screen_y + 15)
+            pygame.draw.polygon(surface, (50, 80, 60), hood_points)
+                
+        elif self.selected_character_index == 4:  # NECROMANCER - Necromante Oscuro
+            # Mantello fluttuante
+            cloak_wave = math.sin(self.animation_time * 3) * 8
+            cloak_points = [
+                (screen_x - 20, screen_y + 10 + bob_effect),
+                (screen_x - 25, screen_y - cloak_wave),
+                (screen_x, screen_y - 20 + bob_effect),
+                (screen_x + 25, screen_y + cloak_wave),
+                (screen_x + 20, screen_y + 10 + bob_effect)
             ]
-            pygame.draw.polygon(surface, (140, 180, 220), shield_points)
+            pygame.draw.polygon(surface, (40, 20, 60), cloak_points)
+            
+            # Teschio fluttuante
+            skull_float = math.sin(self.animation_time * 2) * 4
+            skull_size = 14
+            pygame.draw.circle(surface, (200, 220, 240), 
+                            (int(screen_x), int(screen_y - 5 + skull_float + bob_effect)), 
+                            skull_size)
+            
+            # Occhi brillanti
+            eye_glow = min(255, abs(math.sin(self.animation_time * 4)) * 150 + 50)
+            for eye_offset in [-6, 6]:
+                pygame.draw.circle(surface, (eye_glow, 50, eye_glow), 
+                                (int(screen_x + eye_offset), 
+                                int(screen_y - 7 + skull_float + bob_effect)), 4)
+            
+            # Bocca oscura
+            mouth_width = 12
+            mouth_height = max(1, 4 + abs(math.sin(self.animation_time * 3)) * 2)
+            mouth_rect = (screen_x - mouth_width//2, 
+                        screen_y + 3 + skull_float + bob_effect,
+                        max(1, mouth_width), mouth_height)
+            pygame.draw.ellipse(surface, (30, 10, 40), mouth_rect)
+            
+            # Rune fluttuanti attorno
+            if self.special_active or move_intensity > 0.5:
+                for i in range(3):
+                    rune_angle = self.animation_time * 2 + i * math.pi*2/3
+                    rune_radius = 25
+                    rune_x = screen_x + math.cos(rune_angle) * rune_radius
+                    rune_y = screen_y + bob_effect + math.sin(rune_angle) * rune_radius
+                    
+                    rune_size = 4
+                    rune_points = []
+                    for j in range(4):
+                        angle = j * math.pi/2
+                        px = rune_x + math.cos(angle) * rune_size
+                        py = rune_y + math.sin(angle) * rune_size
+                        rune_points.append((px, py))
+                    if len(rune_points) > 2:
+                        pygame.draw.polygon(surface, (150, 100, 200), rune_points, 1)
+                
+        elif self.selected_character_index == 5:  # PALADIN - Paladino Sacro
+            # Armatura lucente
+            body_size = 22
+            pygame.draw.circle(surface, (220, 230, 240), 
+                            (int(screen_x), int(screen_y + bob_effect)), body_size)
+            
+            # Scudo orientato nella direzione di movimento
+            shield_angle = move_angle
+            shield_radius = 18
+            shield_x = screen_x + math.cos(shield_angle) * 15
+            shield_y = screen_y + bob_effect + math.sin(shield_angle) * 15
+            
+            # Scudo circolare
+            pygame.draw.circle(surface, (140, 180, 220), 
+                            (int(shield_x), int(shield_y)), shield_radius)
             
             # Croce sullo scudo
+            cross_size = 10
             pygame.draw.line(surface, (255, 255, 200), 
-                           (screen_x - 8, screen_y - 5),
-                           (screen_x + 8, screen_y - 5), 3)
+                        (shield_x - cross_size, shield_y),
+                        (shield_x + cross_size, shield_y), 3)
             pygame.draw.line(surface, (255, 255, 200), 
-                           (screen_x, screen_y - 13),
-                           (screen_x, screen_y + 3), 3)
+                        (shield_x, shield_y - cross_size),
+                        (shield_x, shield_y + cross_size), 3)
+            
+            # Spada nella mano opposta
+            sword_angle = shield_angle + math.pi
+            sword_length = 20
+            sword_x = screen_x + math.cos(sword_angle) * 12
+            sword_y = screen_y + bob_effect + math.sin(sword_angle) * 12
+            
+            # Lama spada
+            pygame.draw.line(surface, (255, 255, 220), 
+                        (sword_x, sword_y),
+                        (sword_x + math.cos(sword_angle) * sword_length,
+                            sword_y + math.sin(sword_angle) * sword_length), 4)
+            
+            # Effetto fiamma sacra se l'abilità speciale è attiva
+            if self.special_active:
+                for j in range(3):
+                    flame_size = max(3, 6 * (1 + 0.5 * math.sin(self.animation_time*5 + j)))
+                    flame_angle = self.animation_time * 3 + j * math.pi*2/3
+                    flame_x = screen_x + math.cos(flame_angle) * 30
+                    flame_y = screen_y + bob_effect + math.sin(flame_angle) * 30
+                    
+                    flame_points = []
+                    for k in range(5):
+                        angle = flame_angle + k * math.pi/2.5
+                        px = flame_x + math.cos(angle) * flame_size
+                        py = flame_y + math.sin(angle) * flame_size
+                        flame_points.append((px, py))
+                    if len(flame_points) > 2:
+                        pygame.draw.polygon(surface, (255, min(255, 200 + j*20), 100), flame_points)
+            
+            # Elmo con croce
+            helmet_y = screen_y - 10 + bob_effect
+            pygame.draw.circle(surface, (180, 190, 210), 
+                            (int(screen_x), int(helmet_y)), 10)
+            pygame.draw.line(surface, (255, 255, 200), 
+                        (screen_x - 5, helmet_y),
+                        (screen_x + 5, helmet_y), 2)
+            pygame.draw.line(surface, (255, 255, 200), 
+                        (screen_x, helmet_y - 5),
+                        (screen_x, helmet_y + 5), 2)
         
-        # Scudo energetico
+        # Scudo energetico (se presente)
         if self.shield_hp > 0:
             shield_ratio = self.shield_hp / max(1, self.max_shield)
-            shield_size = 30
-            shield_alpha = int(150 * shield_ratio)
-            shield_pulse = math.sin(self.animation_time * 10) * 0.2 + 0.8
+            shield_size = max(20, 35 + move_intensity * 5)
+            shield_alpha = min(255, int(180 * shield_ratio))
+            shield_pulse = math.sin(self.animation_time * 8) * 0.2 + 0.8
             
-            shield_surf = pygame.Surface((shield_size*2, shield_size*2), pygame.SRCALPHA)
-            pygame.draw.circle(shield_surf, (100, 180, 255, shield_alpha), 
-                             (shield_size, shield_size), int(shield_size * shield_pulse))
-            pygame.draw.circle(shield_surf, (200, 220, 255, shield_alpha//2), 
-                             (shield_size, shield_size), int(shield_size * shield_pulse), 2)
-            surface.blit(shield_surf, (int(screen_x - shield_size), int(screen_y - shield_size)))
+            if shield_size > 0 and shield_alpha > 0:
+                shield_surf = pygame.Surface((max(2, int(shield_size*2)), max(2, int(shield_size*2))), pygame.SRCALPHA)
+                
+                for i in range(3):
+                    layer_size = shield_size * (1 - i * 0.1)
+                    layer_alpha = min(255, int(shield_alpha * (1 - i * 0.3)))
+                    if layer_size > 0 and layer_alpha > 0:
+                        # Correggi: usa solo 3 componenti per draw.circle
+                        color_surf = pygame.Surface((max(2, int(layer_size*2*shield_pulse)), 
+                                                max(2, int(layer_size*2*shield_pulse))), pygame.SRCALPHA)
+                        pygame.draw.circle(color_surf, (100, 180, 255), 
+                                        (int(layer_size*shield_pulse), int(layer_size*shield_pulse)), 
+                                        int(layer_size * shield_pulse), 2)
+                        color_surf.set_alpha(layer_alpha)
+                        shield_surf.blit(color_surf, (int(shield_size - layer_size*shield_pulse), 
+                                                    int(shield_size - layer_size*shield_pulse)))
+                
+                surface.blit(shield_surf, (int(screen_x - shield_size), int(screen_y - shield_size)))
         
-        # Special active indicator
+        # Indicatore abilità speciale attiva
         if self.special_active:
-            pulse = math.sin(self.animation_time * 12) * 0.4 + 0.8
-            radius = int(35 * pulse)
+            pulse = math.sin(self.animation_time * 12) * 0.3 + 0.8
+            radius = max(10, int(45 * pulse))
             
-            special_surf = pygame.Surface((radius*2, radius*2), pygame.SRCALPHA)
-            pygame.draw.circle(special_surf, (*char.color, 100), 
-                             (radius, radius), radius)
-            pygame.draw.circle(special_surf, (255, 255, 200, 200), 
-                             (radius, radius), radius, 3)
-            surface.blit(special_surf, (int(screen_x - radius), int(screen_y - radius)))
+            special_color = char.color[:3]  # Prendi solo RGB
             
-            # Particelle speciali
-            if int(self.animation_time * 20) % 3 == 0:
-                for i in range(4):
-                    angle = self.animation_time + i * math.pi/2
-                    dist = radius * 0.8
-                    px = screen_x + math.cos(angle) * dist
-                    py = screen_y + math.sin(angle) * dist
-                    pygame.draw.circle(surface, (255, 255, 200), (int(px), int(py)), 3)
+            if radius > 0:
+                special_surf = pygame.Surface((max(2, radius*2), max(2, radius*2)), pygame.SRCALPHA)
+                
+                # Aura esterna
+                for i in range(3):
+                    ring_size = radius * (1 - i * 0.2)
+                    ring_alpha = min(255, int(100 * (1 - i * 0.3)))
+                    if ring_size > 0 and ring_alpha > 0:
+                        ring_surf = pygame.Surface((max(2, int(ring_size*2)), max(2, int(ring_size*2))), pygame.SRCALPHA)
+                        pygame.draw.circle(ring_surf, special_color, 
+                                        (int(ring_size), int(ring_size)), int(ring_size))
+                        ring_surf.set_alpha(ring_alpha)
+                        special_surf.blit(ring_surf, (int(radius - ring_size), int(radius - ring_size)))
+                
+                # Bordo pulsante
+                border_width = max(2, int(radius * 0.1))
+                border_surf = pygame.Surface((max(2, radius*2), max(2, radius*2)), pygame.SRCALPHA)
+                pygame.draw.circle(border_surf, (255, 255, 200), 
+                                (radius, radius), radius, border_width)
+                border_surf.set_alpha(200)
+                special_surf.blit(border_surf, (0, 0))
+                
+                surface.blit(special_surf, (int(screen_x - radius), int(screen_y - radius)))
+            
+            # Particelle speciali rotanti
+            particle_count = 8
+            for i in range(particle_count):
+                angle = self.animation_time * 6 + i * math.pi*2/particle_count
+                dist = radius * 0.7
+                px = screen_x + math.cos(angle) * dist
+                py = screen_y + math.sin(angle) * dist
+                
+                particle_size = max(2, 3 + math.sin(self.animation_time * 10 + i) * 1)
+                particle_color = (255, 255, 200) if i % 2 == 0 else (255, 255, 150)
+                
+                pygame.draw.circle(surface, particle_color, 
+                                (int(px), int(py)), int(particle_size))
+
+
+
+
+
+
+
+
+
+
+
 
     def draw_hud(self, surface: pygame.Surface):
         padding = 20
