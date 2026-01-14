@@ -1382,8 +1382,8 @@ class VampireBall(MiniGame):
         self.camera_target_y = 0
         self.camera_smoothness = 0.15
         
-        self.trackball_sensitivity = 0.2
-        self.movement_smoothing = 0.85
+        self.trackball_sensitivity = 0.04
+        self.movement_smoothing = 0.75
         
         self.garlic_damage = 6
         self.garlic_radius = 90
